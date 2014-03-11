@@ -1,2 +1,1 @@
-LChat
-=====
+Prototyping: Lightweight Android shell around mobile web using AngularJS and Firebase

@@ -1,0 +1,18 @@
+<!-- NOTE: orderByPriority is broken on Safari -->
+<div id='listHeader'>
+	<h3>Your Groups</h3>
+</div>
+<ul id='listContent' class='list-group' style='overflow:auto;margin:0'>
+  <li class='list-group-item' ng-repeat="group in usergroups">
+    <a ng-href="#/group/{{group}}">{{groups[group].name}}</a>
+		<h5>Members: <span class="label label-primary" ng-repeat="(key, value) in groups[group].members">{{value}}</span></h5>
+    <h6>{{ groups[group].created }}</h6>
+  </li>
+</ul>
+
+<div id='listFooter' class="input-group">
+  <input type='text' class='form-control' placeholder='New group' ng-model="newGroupName">
+  <span class="input-group-btn">
+    <button class="btn btn-success" type="button" ng-click="createGroup()">Add</button>
+  </span>
+</div>

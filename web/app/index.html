@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" ng-app="myapp">
+<head>
+  <title>LChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    .nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
+  </style>
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+</head>
+
+<body ng-controller="MyCtrl">
+  <div id='container' class='container'>
+		<h3 ng-show="!loginObj.user">Loading..</h3>
+		<div id='content' ng-show="loginObj.user" ng-view></div>
+	</div>
+	
+  <script src="https://cdn.firebase.com/v0/firebase.js"></script>
+  <script src="https://cdn.firebase.com/js/simple-login/1.2.5/firebase-simple-login.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.7/angular.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.7/angular-route.js"></script>
+  <script src="https://cdn.firebase.com/libs/angularfire/0.6.0/angularfire.js"></script>
+  <script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>
+  <script>
+		function autoResizeContent()
+		{
+			// We want the view content to scale the available space, and have scrollbars if it doesn't fit
+			
+			// TODO: This is super fragile, and probably buggy
+			// TODO: where does this 40px come from?  Hn tags?
+
+			var ih = window.innerHeight;
+			//var h2 = document.getElementById('header').offsetHeight;
+			var h2 = 0;
+			
+			var gh = document.getElementById('groupHeader');
+			var gf = document.getElementById('groupFooter');
+			if (gh && gf) {
+				var h = gh.offsetHeight;
+				var f = gf.offsetHeight;
+				document.getElementById('groupContent').style.height = ih - h2 - h - f - 40 + 'px';
+			}
+			
+			var lh = document.getElementById('listHeader');
+			var lf = document.getElementById('listFooter');
+			if (lh && lf) {
+				var h = lh.offsetHeight;
+				var f = lf.offsetHeight;
+				document.getElementById('listContent').style.height = ih - h2 - h - f - 40 + 'px';
+			}
+		}
+		window.onresize = autoResizeContent;
+
+    angular.module("myapp", ["firebase", "ui.bootstrap", "ngRoute"])
+		.config(function( $routeProvider ){
+				$routeProvider
+				.when(
+					"/group/:id",
+					{
+						templateUrl: 'group.html',
+						controller: 'GroupCtrl',
+					}
+				)
+				.otherwise(
+					{
+						templateUrl: 'list.html',
+						controller: 'ListCtrl'
+					}
+				);
+			}
+		)
+		.controller('ListCtrl', ['$rootScope', '$scope', '$firebase', function($rootScope, $scope, $firebase) {
+			$scope.groups = $firebase(new Firebase('https://lchat.firebaseio.com/groups'));
+			
+			$scope.groups.$on("change", function() {
+				if (autoResizeContent) {
+					autoResizeContent();
+				}
+			});
+
+      if ($scope.username) {
+				$scope.usergroups = $firebase(new Firebase('https://lchat.firebaseio.com/users/' + $scope.username + '/groups'));			}
+			else {
+				$scope.usergroups = [];
+			}
+			
+			$rootScope.$on("$firebaseSimpleLogin:login", function(e, user) {
+        $scope.username = user.email.split('@')[0];
+				$scope.usergroups = $firebase(new Firebase('https://lchat.firebaseio.com/users/' + $scope.username + '/groups'));
+      });
+
+			$scope.createGroup = function() {
+				if ($scope.newGroupName) {
+					$scope.groups.$add(
+					{
+						name: $scope.newGroupName, 
+						creator: $scope.username,
+						members: [$scope.username],
+						created: new Date().toTimeString()
+					})
+					.then(function(ref) {
+						$scope.usergroups.$add(ref.name());					
+					});
+					$scope.newGroupName = null;
+				}
+			};
+		}])
+		.controller('GroupCtrl', ['$scope', '$firebase', '$routeParams', '$window', 
+    function($scope, $firebase, $routeParams, $window) {
+			$scope.group = $firebase(new Firebase('https://lchat.firebaseio.com/groups/' + $routeParams.id));
+			$scope.members = $firebase(new Firebase('https://lchat.firebaseio.com/groups/' + $routeParams.id + '/members/'));
+			$scope.messages = $firebase(new Firebase('https://lchat.firebaseio.com/groups/' + $routeParams.id + '/messages'));
+
+			$scope.addMessage = function() {
+				if ($scope.message) {
+          var message = $scope.message;
+					for (var i = 0; i < $scope.members.$getIndex().length; i++) {
+            var member = $scope.members[$scope.members.$getIndex()[i]];
+            if (member !== $scope.username) {
+              new Firebase('https://lchat.firebaseio.com/users/' + member)
+              .on("value", function(dataSnapshot) {
+                if (dataSnapshot.val()) {
+                  if (!dataSnapshot.val().created) {
+                    if (typeof Android !== 'undefined' && Android.sendText) {
+                      //Android.showToast('external user: ' + dataSnapshot.name());
+                      Android.sendText(dataSnapshot.name(), message);
+                    }
+                    else {
+                      console.log('external user: ' + dataSnapshot.name());
+                    }
+                    // NOTE: sms://<number>?body=<message> not supported
+                    //alert('sms:+' + dataSnapshot.name() + '?body=' + $scope.message);
+                    //$window.open('sms:+' + dataSnapshot.name() + '?body=' + $scope.message);
+                    // TODO: call javascript interface
+                  }
+                }
+              });
+            }
+          }
+					$scope.messages.$add({message: $scope.message, creator: $scope.username, created: new Date().toTimeString()});
+					$scope.message = null;
+				}
+			};
+			
+			$scope.messages.$on("change", function() {
+				if (autoResizeContent) {
+					autoResizeContent();
+				}
+			});
+
+			$scope.group.$on("change", function() {
+				if (autoResizeContent) {
+					autoResizeContent();
+				}
+			});
+		}])
+		.controller('MyCtrl', ['$rootScope', '$scope', '$firebase', '$firebaseSimpleLogin', '$location', 
+    function($rootScope, $scope, $firebase, $firebaseSimpleLogin, $location) {
+      var dataRef = new Firebase('https://lchat.firebaseio.com');
+      $scope.loginObj = $firebaseSimpleLogin(dataRef);
+
+      var queryParams = $location.search();
+      if (queryParams.username && queryParams.password) {
+        loginHelper(queryParams.username, queryParams.password);      
+      }
+      
+      $rootScope.$on("$firebaseSimpleLogin:login", function(e, user) {
+        var username = user.email.split('@')[0];
+        if (username !== $scope.username) {
+          $scope.username = username;
+        }
+      });
+      
+      function loginHelper(username, password) {
+          $scope.username = username;
+          var email = username + '@lchat.net';
+          $scope.loginObj.$login('password', {
+            email: email,
+            password: password
+          }).then(function(user) {
+          }, function(error) {
+            $scope.loginObj.$createUser(email, password)
+            .then(function(user) {
+							$scope.user = $firebase(new Firebase('https://lchat.firebaseio.com/users/' + $scope.username));
+							$scope.user.created = new Date().toTimeString();
+							$scope.user.$save();
+            }, function(error) {
+               console.error('createUser failed: ', error);
+            });
+          });
+      }
+      
+      $scope.login = function() {
+        if ($scope.username) { 
+          loginHelper($scope.username, 'password');
+        }
+      };
+      
+      $scope.logout = function() {
+        $scope.loginObj.$logout();
+        $scope.username = null;
+      };
+		}]);
+	</script>
+</body>
+</html>

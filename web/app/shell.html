@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" ng-app="myapp">
+<head>
+  <title>LChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    .nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
+		html, body {height:100%; width:100%;}
+  </style>
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+</head>
+
+<body ng-controller="MyCtrl">
+	<iframe id='myframe' src="./" style='margin-left:auto; margin-right:auto; height:80%; width:40%;'></iframe>
+	<div class="input-group">
+		<input type='text' class='form-control' placeholder='User' ng-model='addPersonName'>
+		<span class="input-group-btn">
+			<button class="btn btn-success" type="button" ng-click='addPerson()'>Add Person</button>
+		</span>
+	</div>
+	<input type='text' class='form-control' placeholder='Phone number' ng-model="username">
+	<input type='text' class='form-control' placeholder='Password' ng-model="password">
+	<button class="btn btn-primary" type="button" ng-click="back()">Back</button>
+	<button class="btn btn-success" type="button" ng-click="login()">Login</button>
+	<button class="btn btn-default" type="button" ng-click='logout()'>Logout</button>
+	<span class="label label-primary">{{username}}</span>
+	
+	
+  <script src="https://cdn.firebase.com/v0/firebase.js"></script>
+  <script src="https://cdn.firebase.com/js/simple-login/1.2.5/firebase-simple-login.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.7/angular.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.7/angular-route.js"></script>
+  <script src="https://cdn.firebase.com/libs/angularfire/0.6.0/angularfire.js"></script>
+  <script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>
+  <script>
+    angular.module("myapp", ["firebase", "ui.bootstrap", "ngRoute"])
+		.controller('MyCtrl', ['$rootScope', '$scope', '$firebase', '$firebaseSimpleLogin', '$location', 
+    function($rootScope, $scope, $firebase, $firebaseSimpleLogin, $location) {
+      $scope.login = function() {
+        if ($scope.username && $scope.password) { 
+					myframe.src = './#/?username=' + $scope.username + '&password=' + $scope.password;
+					myframe.contentWindow.location.reload(true);
+        }
+      };
+      
+      $scope.logout = function() {
+				// TODO: this doesn't actually work.  logout in index.html if no login params?
+        $scope.username = null;
+				$scope.password = null;
+				myframe.src = './';
+				myframe.contentWindow.location.reload(true);
+      };
+			
+			$scope.back = function () {
+				myframe.contentWindow.history.back();
+			};
+			
+			$scope.addPerson = function () {
+				var groupId = myframe.contentWindow.location.hash;
+				groupId = groupId.slice(groupId.lastIndexOf('/') + 1, groupId.length);
+				if ($scope.addPersonName && groupId !== '') {
+					var members = $firebase(new Firebase('https://lchat.firebaseio.com/groups/' + groupId + '/members/'));
+					members.$add($scope.addPersonName);
+					var newPersonGroups = $firebase(new Firebase('https://lchat.firebaseio.com/users/' + $scope.addPersonName + '/groups'));
+					newPersonGroups.$add(groupId);
+					$scope.addPersonName = null;
+				}
+			};
+			
+		}]);
+	</script>
+</body>
+</html>

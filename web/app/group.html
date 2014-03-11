@@ -1,0 +1,17 @@
+<div id='groupHeader'>
+	<h3>{{ group.name }}</h3>
+	<h5>Members: <span class="label label-primary" ng-repeat="(key, value) in members">{{value}}</span></h5>
+</div>
+<ul id='groupContent' class='list-group' style='overflow:auto;margin:0'>
+  <li class='list-group-item' ng-repeat='message in messages'>
+    <h4><span class='label label-default'>{{ message.creator }}</span> {{ message.message }}</h4>
+    <h6>{{ message.created }}</h6>
+  </li>
+</ul>
+
+<div id='groupFooter' class="input-group">
+  <input type='text' class='form-control' placeholder='Message' ng-model='message'>
+  <span class="input-group-btn">
+    <button class="btn btn-success" type="button" ng-click='addMessage()'>Send</button>
+  </span>
+</div>

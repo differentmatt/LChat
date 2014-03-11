@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Implementation-Vendor: Firebase
+Implementation-Title: Firebase JVM Client
+Implementation-Version: 1.0.12-SNAPSHOT
+Implementation-Vendor-Id: com.firebase
+Built-By: vikrum
+Build-Jdk: 1.7.0_04-ea
+Specification-Vendor: Firebase
+Specification-Title: Firebase JVM Client
+Created-By: Apache Maven
+Specification-Version: 1.0.12-SNAPSHOT
+Archiver-Version: Plexus Archiver
+
